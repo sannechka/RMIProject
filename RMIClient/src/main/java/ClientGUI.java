@@ -75,6 +75,7 @@ public class ClientGUI extends JFrame {
         class ButtonEventListener2 implements ActionListener {
             public void actionPerformed(ActionEvent e) {
                 message = messagee.getText();
+                System.out.println("");
                 try {
                     String g = a.remote.sendMessege(youname + " ", message);
                     System.out.println(g);
