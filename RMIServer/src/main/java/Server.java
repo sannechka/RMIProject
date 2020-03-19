@@ -11,8 +11,11 @@ public class Server {
 
     public static void main(String[] args) throws NamingException, RemoteException {
         Registry registry = LocateRegistry.createRegistry(1099);
+        IMath start = new IMathImpl();
+
         try {
-            registry.bind("chat", new IMathImpl());
+            registry.bind("chat", start);
+            System.out.println("Server is running...");
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
         }
