@@ -7,19 +7,20 @@ import javax.swing.border.Border;
 
 
 public class ClientGUI extends JFrame {
-
     private JButton connectBut = new JButton("Connect");
-    private JButton messageBut = new JButton("send a message:");
+    private JButton messageBut = new JButton("Send a message");
+    private JButton pmessageBut = new JButton("Send a private message");
+    private JButton leaveChat = new JButton("Leave chat");
     public Label label = new Label("Enter your name:");
-    public Label label2 = new Label("Enter your messege");
-    public Label label3 = new Label("Online");
+    public Label messegelabel = new Label("Enter your messege:");
+    public Label usersOnline = new Label("Online");
     public JTextField name = new JTextField("", 5);
-    public JTextField messagee= new JTextField("", 10);
-    private JPanel textPanel, inputPanel, userpanel;
+    public JTextField textOfMessage= new JTextField("", 10);
+    private JPanel textPanel, inputPanel, userpanel, massegePanel;
     private String youname, message;
     JFrame registration;
-    JFrame chat;
-    JTextArea chaat = new JTextArea();
+    JFrame myChat;
+    JTextArea chat;
     Client a;
     JList<String> users;
 
@@ -27,13 +28,16 @@ public class ClientGUI extends JFrame {
       ClientGUI  s= new ClientGUI();
       s.setVisible(true);
     }
-    public void getConnected() throws RemoteException {
+    public boolean getConnected() throws RemoteException {
         try {
             a = new Client(this);
-            a.startClient(name.getText());
+          boolean s;
+          s = a.startClient(name.getText());
+          return s;
         } catch (RemoteException e) {
             e.printStackTrace();
         }
+        return false;
     }
     public ClientGUI() {
         super("Connection");
@@ -45,52 +49,89 @@ public class ClientGUI extends JFrame {
         inputPanel.add(name);
         inputPanel.add(connectBut);
         connectBut.addActionListener(new ButtonEventListener());
-    }
+}
     class ButtonEventListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             youname = name.getText();
             try {
-                getConnected();
-                chat = new JFrame();
-                chat.setLayout( new BorderLayout());
+                 if(getConnected()){
+                myChat = new JFrame();
+                myChat.setLayout( new BorderLayout());
                 JPanel mainPanel = new JPanel(new BorderLayout());
-                textPanel = new JPanel(new BorderLayout());
-                JPanel massegePanel= new JPanel();
-                userpanel = new JPanel();
-                chat.setSize(500, 600);
-                chat.add(mainPanel, BorderLayout.CENTER);
-                chat.add(userpanel, BorderLayout.EAST);
-                mainPanel.add(textPanel,BorderLayout.SOUTH);
-                mainPanel.add(massegePanel, BorderLayout.NORTH);
-                userpanel.add( new JScrollPane(users));
-                userpanel.add(label3, BorderLayout.NORTH);
-                updatelist();
-                chaat.setBackground(Color.PINK);
-                mainPanel.add(chaat);
-                textPanel.add(label2, BorderLayout.WEST);
-                textPanel.add(messagee,BorderLayout.SOUTH);
-                textPanel.add(messageBut,BorderLayout.NORTH);
-                updatelist();
-                messageBut.setBounds(200, 200, 5,5);
-                messagee.setBounds(200, 200, 5,5);
-                chat.setVisible(true);
-                textPanel.setVisible(true);
-                messageBut.addActionListener(new ButtonEventListener2());
+                myChat.setSize(500, 600);
+                myChat.add(mainPanel, BorderLayout.CENTER);
+                myChat.add(getUserPanel(), BorderLayout.EAST);
+                mainPanel.add(getTextPanel(),BorderLayout.SOUTH);
+                mainPanel.add(getmassegePanel(), BorderLayout.NORTH);
+                myChat.setVisible(true);}
+                 else {
+                     System.out.println("Такой пользователь уже есть");
+                 }
 
-            } catch (RemoteException ex) {
+
+        } catch (RemoteException ex) {
                 ex.printStackTrace();
             }
         }
+    public JPanel getUserPanel() {
+        updatelist();
+        userpanel = new JPanel(new BorderLayout());
+        userpanel.add( new JScrollPane(users), BorderLayout.CENTER);
+        userpanel.add(pmessageBut, BorderLayout.NORTH);
+        pmessageBut.addActionListener(new ButtonEventListener3());
+        userpanel.add(usersOnline, BorderLayout.EAST);
+        userpanel.add(leaveChat, BorderLayout.AFTER_LAST_LINE);
+        leaveChat.addActionListener(new ButtonEventListener4());
+
+        return userpanel;
     }
-        class ButtonEventListener2 implements ActionListener {
+
+    public JPanel getTextPanel(){
+        String welcome = "Welcome enter your name and press Start to begin\n";
+        textPanel = new JPanel(new BorderLayout());
+        textPanel.add(messegelabel, BorderLayout.WEST);
+        textPanel.add(textOfMessage,BorderLayout.SOUTH);
+        textPanel.add(messageBut,BorderLayout.NORTH);
+        messageBut.setBounds(200, 200, 5,5);
+        textPanel.setFont(new Font("Meiryo", Font.PLAIN, 15));
+        messageBut.addActionListener(new ButtonEventListener2());
+        return textPanel;
+    }
+    public JPanel getmassegePanel(){
+        massegePanel = new JPanel(new GridLayout(1, 1, 1, 1));
+        chat = new JTextArea("username : " + name.getText() + " connecting to chat...\n", 19, 20);
+        chat.setBackground(Color.PINK);
+        massegePanel.add(chat);
+        return massegePanel;
+    }
+    class ButtonEventListener2 implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            message = textOfMessage.getText();
+            textOfMessage.setText("");
+            try {
+                a.remote.sendMessege(youname , message);
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    class ButtonEventListener3 implements ActionListener {
             public void actionPerformed(ActionEvent e) {
-                message = messagee.getText();
-                messagee.setText("");
+                message = textOfMessage.getText();
+                textOfMessage.setText("");
                 try {
-                    String g = a.remote.sendMessege(youname , message);
-                    chaat.append(g);
-                    chaat.setText(chaat.getText() + "\n");
+                    String name2 = users.getSelectedValue();
+                    a.remote.sendPM(youname, name2 , message);
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        class ButtonEventListener4 implements ActionListener {
+            public void actionPerformed(ActionEvent e) {
+                try {  a.remote.disconnect(youname);
+                    myChat.dispose();
                 } catch (RemoteException ex) {
                     ex.printStackTrace();
                 }
@@ -101,13 +142,17 @@ public class ClientGUI extends JFrame {
         try {
             String[] online = a.remote.getusers();
             System.out.println(online);;
-            users = new JList<String>(online);
+            if(online.length != 0){
+                usersOnline.setText( "ONLINE");
+            users = new JList<String>(online);}
+            else { usersOnline.setText( "No other users");}
+
         } catch (RemoteException e) {
             e.printStackTrace();
         }
 
     }
-}
+    }}
 
 
 
