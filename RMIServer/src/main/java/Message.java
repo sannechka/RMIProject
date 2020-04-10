@@ -1,8 +1,8 @@
 
-public class Message {
+public class Message  implements Imessage{
 
-    private String text;
-    private User user;
+    protected String text;
+    protected User user;
 
     public Message(String text, User user) {
         this.text = text;
@@ -15,5 +15,10 @@ public class Message {
 
     public User getUser() {
         return user;
+    }
+
+    @Override
+    public String getMessageFromChat() {
+        return  user + ": " + text;
     }
 }

@@ -6,20 +6,17 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Server extends UnicastRemoteObject implements ServerInterface {
-    private Registry registry;
     List<User> users = new ArrayList<>();
-    List<Message> messages = new ArrayList<>();
-    List<PMessage> pMessages = new ArrayList<>();
+    Queue<Imessage> allMessages=  new LinkedList<>();
+
 
     protected Server() throws RemoteException {
     }
 
-    public static void main(String[] args) throws NamingException, RemoteException {
+    public static void main(String[] args) throws  RemoteException {
         Registry registry = LocateRegistry.createRegistry(1099);
         ServerInterface start = new Server();
 
@@ -38,24 +35,16 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         }
         return onlineusers;
     }
+    public void sendAllMassage(){
 
-    public void sendMessege(String username, String message) {
-        String newMessage = username + ": " + message;
-        for (int i = 0; i < users.size(); i++) {
-            try {
-                users.get(i).getClient().messageFromChat(newMessage);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-
-            if (users.get(i).getName().equals(username)) {
-                User a = users.get(i);
-                Message newMessage2 = new Message(message, a);
-                messages.add(newMessage2);
-            }
-            System.out.println("Пользователь: " + username + " добавил сообщение: " + message + " в общий чат");
-        }
     }
+
+    public void sendMessage(String username, String message) {
+        User user = users.stream().filter(o -> o.getName().equals(username)).findFirst().get();
+        Message newMessage2 = new Message(message, user);
+        allMessages.add(newMessage2);
+        }
+
 
 
     @Override
@@ -70,7 +59,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     }
 
     @Override
-    public boolean connect(String username, ClientInterface client) throws IOException {
+    public synchronized boolean connect(String username, ClientInterface client) throws IOException {
         for (User a : users) {
             if (a.name.equals(username)) {
                 return false;
@@ -105,29 +94,10 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
 
     @Override
     public void sendPM(String user1, String user2, String privateMessage) throws RemoteException {
-        String newMessage = user1 + " FROM " + user2 + ": " + privateMessage;
-        int a = 0;
-        int b = 0;
-        for (int i = 0; i < users.size(); i++) {
-            if (users.get(i).name.equals(user1) || users.get(i).name.equals(user2)) {
-                try {
-                    users.get(i).getClient().messageFromChat(newMessage);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (users.get(i).getName().equals(user1)) {
-                a = i;
-            }
-            if (users.get(i).getName().equals(user2)) {
-                b = i;
-            }
-
-        }
-        Message newMessage2 = new PMessage(privateMessage, users.get(a), users.get(b));
-        messages.add(newMessage2);
-        System.out.println("Пользователь: " + user1 + " отправил личное сообщение для: " + user2 + ": " + privateMessage);
+        User usera = users.stream().filter(o -> o.getName().equals(user1)).findFirst().get();
+        User userb = users.stream().filter(o -> o.getName().equals(user2)).findFirst().get();
+        PMessage newMessage2 = new PMessage(privateMessage, usera,userb);
+        allMessages.add(newMessage2);
     }
 
 }
