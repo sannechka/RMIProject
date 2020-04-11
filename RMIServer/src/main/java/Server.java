@@ -1,23 +1,30 @@
 
-import javafx.print.Collation;
-
 import java.io.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server extends UnicastRemoteObject implements ServerInterface {
     Sendler sendler = new Sendler();
 
     protected Server() throws RemoteException {
+        ExecutorService threds = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        threds.submit(() -> {
+            while (true) {
+                try {
+                    sendler.sendMessage();
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }});
 
     }
+
 
     public static void main(String[] args) throws  RemoteException {
         Registry registry = LocateRegistry.createRegistry(1099);
@@ -28,25 +35,28 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
         }
+
     }
 
     public String[] getusers() {
-        String[] users = sendler.usersOnline.keySet()
-                .stream()
-                .toArray(String[]::new);
+        String[] users = sendler.usersOnline.keySet().
+                stream().
+                toArray(String[]:: new);
         return users;
     }
 
     @Override
-    public void sendMessage(String userName, String message) {
+    public void sendMessage(String userName, String message) throws RemoteException, InterruptedException {
         Message newMessage = new Message(message, userName);
-        sendler.allMessages.offer(newMessage);
+        sendler.allMessages.put(newMessage);
+
         }
 
     @Override
-    public void sendPM(String sender, String recipient, String privateMessage)  {
+    public void sendPM(String sender, String recipient, String privateMessage) throws RemoteException {
         PMessage newMessage = new PMessage(privateMessage, sender,recipient);
         sendler.allMessages.offer(newMessage);
+
     }
 
     @Override

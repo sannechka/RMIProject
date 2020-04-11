@@ -5,10 +5,18 @@ import java.util.concurrent.SynchronousQueue;
 public class Sendler {
 
     public Map<String, ClientInterface> usersOnline = new HashMap<>();
-    public Queue<Imessage> allMessages = new SynchronousQueue<>();
+    public SynchronousQueue<Imessage> allMessages = new SynchronousQueue<>();
 
-    public void sendMessage() throws RemoteException {
-        Imessage message = allMessages.poll();
+    public void sendMessage() throws RemoteException{
+        Imessage message = null;
+        try {
+            message = allMessages.take();
+        } catch (InterruptedException e){
+            e.printStackTrace();
+        }
+        if(message==null){
+            return;
+        }
         List<String> usersInChat = message.getClients();
         if (usersInChat.size() == 2) {
             if (usersInChat.get(1) != null) {

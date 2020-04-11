@@ -116,7 +116,7 @@ public class ClientGUI extends JFrame {
                 textOfMessage.setText("");
                 try {
                     a.remote.sendMessage(youname, message);
-                } catch (RemoteException ex) {
+                } catch (RemoteException | InterruptedException ex) {
                     ex.printStackTrace();
                 }
             }

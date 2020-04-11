@@ -13,14 +13,6 @@ public class Message  implements Imessage{
         this.user = user;
     }
 
-    public String getText() {
-        return text;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
     @Override
     public String getMessageFromChat() {
         return  user + ": " + text;
