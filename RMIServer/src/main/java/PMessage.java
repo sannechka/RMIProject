@@ -1,12 +1,23 @@
-public class PMessage extends Message  implements Imessage{
-    User user2;
+import java.util.ArrayList;
+import java.util.List;
 
-    public PMessage(String text, User user, User user2) {
+public class PMessage extends Message  implements Imessage{
+    String recipient;
+
+    public PMessage(String text, String user, String recipient) {
         super(text, user);
-        this.user2 = user2;
+        this.recipient = recipient;
     }
+    @Override
     public String getMessageFromChat() {
-        return  super.user.getName() + " FROM " + user2.getName() + ": " + super.text;
+        return  super.user + " FROM " + recipient + ": " + super.text;
+    }
+    @Override
+    public List<String> getClients() {
+        List<String>  users = new ArrayList<>();
+        users.add(user);
+        users.add(recipient);
+        return  users;
     }
     }
 

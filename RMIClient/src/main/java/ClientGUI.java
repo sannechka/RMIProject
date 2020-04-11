@@ -150,14 +150,12 @@ public class ClientGUI extends JFrame {
             try {
                 String[] online = a.remote.getusers();
                 System.out.println(online);
-                ;
                 if (online.length != 0) {
                     usersOnline.setText("ONLINE");
                     users = new JList<String>(online);
                 } else {
                     usersOnline.setText("No other users");
                 }
-
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
