@@ -1,32 +1,29 @@
 
+
 import java.io.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server extends UnicastRemoteObject implements ServerInterface {
-    Sendler sendler = new Sendler();
+    Sendler sendler;
+    private Map<String, ClientInterface> usersOnline = new ConcurrentHashMap<>();
 
     protected Server() throws RemoteException {
+        sendler = new Sendler(this);
         ExecutorService threds = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        threds.submit(() -> {
-            while (true) {
-                try {
-                    sendler.sendMessage();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }});
-
+        threds.submit(sendler);
     }
 
-
-    public static void main(String[] args) throws  RemoteException {
+    public static void main(String[] args) throws RemoteException {
         Registry registry = LocateRegistry.createRegistry(1099);
         ServerInterface start = new Server();
         try {
@@ -35,13 +32,22 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         } catch (AlreadyBoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public ClientInterface getUserByName(String name) {
+        return usersOnline.get(name);
 
     }
 
+    public List<ClientInterface> getUsers() {
+        return (List<ClientInterface>) usersOnline.values();
+    }
+
+
     public String[] getusers() {
-        String[] users = sendler.usersOnline.keySet().
+        String[] users = usersOnline.keySet().
                 stream().
-                toArray(String[]:: new);
+                toArray(String[]::new);
         return users;
     }
 
@@ -49,21 +55,19 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     public void sendMessage(String userName, String message) throws RemoteException, InterruptedException {
         Message newMessage = new Message(message, userName);
         sendler.allMessages.put(newMessage);
-
-        }
+    }
 
     @Override
     public void sendPM(String sender, String recipient, String privateMessage) throws RemoteException {
-        PMessage newMessage = new PMessage(privateMessage, sender,recipient);
+        PMessage newMessage = new PMessage(privateMessage, sender, recipient);
         sendler.allMessages.offer(newMessage);
-
     }
 
     @Override
     public void disconnect(String userName) throws RemoteException {
-       sendler.usersOnline.remove(userName);
-       System.out.println("Пользователь: " + userName + " покинул чат");
-        }
+        usersOnline.remove(userName);
+        System.out.println("Пользователь: " + userName + " покинул чат");
+    }
 
     public synchronized void registration(String userName) throws IOException {
         boolean reg = false;
@@ -92,12 +96,12 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     }
 
     @Override
-    public synchronized boolean connect(String username, ClientInterface client) throws IOException {
-        if (sendler.usersOnline.containsKey(username)) {
-                return false;
-            }
+    public boolean connect(String username, ClientInterface client) throws IOException {
+        if (usersOnline.containsKey(username)) {
+            return false;
+        }
         registration(username);
-        sendler.usersOnline.put(username,client);
+        usersOnline.put(username, client);
         return true;
     }
 }
