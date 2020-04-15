@@ -1,108 +1,108 @@
 
 
 import java.io.*;
-import java.rmi.AlreadyBoundException;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server extends UnicastRemoteObject implements ServerInterface {
-    Sendler sendler;
-    private Map<String, ClientInterface> usersOnline = new ConcurrentHashMap<>();
+    private Sendler sendler;
 
-    protected Server() throws RemoteException {
-        sendler = new Sendler(this);
+    public Server() throws RemoteException {
+        sendler = new Sendler();
         ExecutorService threds = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         threds.submit(sendler);
     }
 
     public static void main(String[] args) throws RemoteException {
-        Registry registry = LocateRegistry.createRegistry(1099);
+        LocateRegistry.createRegistry(1098);
         ServerInterface start = new Server();
         try {
-            registry.bind("chat", start);
+            Naming.rebind("chat", start);
             System.out.println("Server is running...");
-        } catch (AlreadyBoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public ClientInterface getUserByName(String name) {
-        return usersOnline.get(name);
 
-    }
-
-    public List<ClientInterface> getUsers() {
-        return (List<ClientInterface>) usersOnline.values();
-    }
-
-
-    public String[] getusers() {
-        String[] users = usersOnline.keySet().
+    public void getUsers() throws RemoteException {
+        String[] users = sendler.usersOnline.keySet().
                 stream().
                 toArray(String[]::new);
-        return users;
+        for (ClientInterface a : sendler.usersOnline.values()) {
+            a.updateUserList(users);
+
+        }
     }
 
     @Override
-    public void sendMessage(String userName, String message) throws RemoteException, InterruptedException {
+    public void sendMessage(String userName, String message) throws InterruptedException {
         Message newMessage = new Message(message, userName);
         sendler.allMessages.put(newMessage);
     }
 
     @Override
-    public void sendPM(String sender, String recipient, String privateMessage) throws RemoteException {
+    public void sendPM(String sender, String recipient, String privateMessage) {
         PMessage newMessage = new PMessage(privateMessage, sender, recipient);
         sendler.allMessages.offer(newMessage);
     }
 
     @Override
     public void disconnect(String userName) throws RemoteException {
-        usersOnline.remove(userName);
-        System.out.println("Пользователь: " + userName + " покинул чат");
+        sendler.usersOnline.remove(userName);
+        sendAlert("[" + userName + "] left the chat ");
     }
 
     public synchronized void registration(String userName) throws IOException {
         boolean reg = false;
         File usersLogins = new File("C:\\Users\\User\\IdeaProjects\\RMIProject", "Login.txt");
         if (!usersLogins.exists()) {
-            usersLogins.createNewFile();
-            PrintWriter log = new PrintWriter(usersLogins.getAbsoluteFile());
-            log.println(userName);
-            log.close();
+           if(usersLogins.createNewFile()) {
+               PrintWriter log = new PrintWriter(usersLogins.getAbsoluteFile());
+               log.println(userName);
+               log.close();
+           }
         } else {
             Scanner scan = new Scanner(usersLogins.getAbsoluteFile());
             while (scan.hasNextLine()) {
                 String l = scan.nextLine();
                 if (l.equals(userName)) {
-                    System.out.println("Уже зарегестрированный пользователь : " + userName + " вошел в чат");
                     reg = true;
                 }
             }
-            if (reg == false) {
+            if (!reg) {
                 PrintStream printStream = new PrintStream(new FileOutputStream(usersLogins, true), true);
                 printStream.println(userName);
                 printStream.close();
-                System.out.println("Новый пользователь : " + userName + " вошел в чат");
+                System.out.println(userName + "- was registered");
             }
         }
     }
 
     @Override
-    public boolean connect(String username, ClientInterface client) throws IOException {
-        if (usersOnline.containsKey(username)) {
+    public boolean connect(String userName) throws IOException, NotBoundException {
+        if (sendler.usersOnline.containsKey(userName)) {
             return false;
         }
-        registration(username);
-        usersOnline.put(username, client);
+        ClientInterface newClient = (ClientInterface) Naming.lookup(userName);
+        registration(userName);
+        sendAlert("[" + userName + "] connecting to chat ");
+        sendler.usersOnline.put(userName, newClient);
+        getUsers();
         return true;
+    }
+
+    public void sendAlert(String text) throws RemoteException {
+        System.out.println(text);
+        for (ClientInterface a : sendler.usersOnline.values()) {
+            a.messageFromChat(text);
+        }
     }
 }
 

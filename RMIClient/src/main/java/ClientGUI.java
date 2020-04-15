@@ -1,39 +1,31 @@
-import java.awt.*;
-import java.awt.event.*;
-import java.rmi.RemoteException;
-import javax.naming.NamingException;
 import javax.swing.*;
+import javax.swing.border.Border;
+import java.awt.*;
+import java.rmi.RemoteException;
 
 
 public class ClientGUI extends JFrame {
-    private JButton connectBut = new JButton("Connect");
-    private JButton messageBut = new JButton("Send a message");
-    private JButton pmessageBut = new JButton("Send a private message");
-    private JButton leaveChat = new JButton("Leave chat");
-    public Label label = new Label("Enter your name:");
-    public Label messegelabel = new Label("Enter your messege:");
-    public Label usersOnline = new Label("Online");
-    public JTextField name = new JTextField("", 5);
-    public JTextField textOfMessage = new JTextField("", 10);
-    private JPanel textPanel, inputPanel, userpanel, massegePanel;
+    private JButton messageBut, leaveChatBut;
+    protected JButton pMessageBut = new JButton();
+    private Border border = BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray);
+    private JTextField textOfMessage;
+    protected JPanel textPanel, userPanel, massegePanel, conectionPanel;
     private String youname, message;
-    JFrame registration;
-    JFrame myChat;
-    JTextArea chat;
-    Client a;
-    JList<String> users;
+    private JFrame myChat, main;
+    protected JTextArea chat;
+    private Client client;
+    protected JList<String> users;
 
-    public static void main(String[] args) throws NamingException, RemoteException {
-        ClientGUI s = new ClientGUI();
-        s.setVisible(true);
+    public static void main(String[] args) {
+        ClientGUI userForm = new ClientGUI();
+        userForm.setVisible(true);
     }
 
-    public boolean getConnected() throws RemoteException {
+    public boolean getConnected() {
         try {
-            a = new Client(this);
-            boolean s;
-            s = a.startClient(name.getText());
-            return s;
+            client = new Client(this, youname);
+            return client.startClient(youname);
+
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -42,127 +34,121 @@ public class ClientGUI extends JFrame {
 
     public ClientGUI() {
         super("Connection");
-        inputPanel = new JPanel();
-        this.setSize(400, 400);
-        add(inputPanel);
-        inputPanel.add(label);
-        label.setLocation(150, 150);
-        inputPanel.add(name);
-        inputPanel.add(connectBut);
-        connectBut.addActionListener(new ButtonEventListener());
+        conectionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        this.setSize(250, 200);
+        conectionPanel.setBackground(Color.pink);
+        add(conectionPanel);
+        conectionPanel.add(new Label("Enter your name:"));
+        JTextField name = new JTextField("", 14);
+        conectionPanel.add(name);
+        JButton connectBut = new JButton("Connect");
+        conectionPanel.add(connectBut);
+        connectBut.addActionListener(e -> {
+            youname = name.getText();
+            if (!youname.isEmpty()) {
+                if (getConnected()) {
+                    getMyChat();
+                    main = this;
+                    this.setVisible(false);
+                }
+            }
+        });
     }
 
-    class ButtonEventListener implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            youname = name.getText();
-            try {
-                if (getConnected()) {
-                    myChat = new JFrame();
-                    myChat.setLayout(new BorderLayout());
-                    JPanel mainPanel = new JPanel(new BorderLayout());
-                    myChat.setSize(500, 600);
-                    myChat.add(mainPanel, BorderLayout.CENTER);
-                    myChat.add(getUserPanel(), BorderLayout.EAST);
-                    mainPanel.add(getTextPanel(), BorderLayout.SOUTH);
-                    mainPanel.add(getmassegePanel(), BorderLayout.NORTH);
-                    myChat.setVisible(true);
-                } else {
-                    System.out.println("Такой пользователь уже есть");
+    public JFrame getMyChat() {
+        myChat = new JFrame();
+        myChat.setTitle("Welcome to CHAT!!!");
+        myChat.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                try {
+                    client.remote.disconnect(youname);
+                    main.setVisible(true);
+                } catch (RemoteException ex) {
+                    ex.printStackTrace();
                 }
+            }
+        });
+        myChat.setLayout(new BorderLayout());
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        myChat.setSize(600, 600);
+        myChat.add(mainPanel, BorderLayout.CENTER);
+        myChat.add(getUserPanel(), BorderLayout.EAST);
+        mainPanel.add(getTextPanel(), BorderLayout.SOUTH);
+        mainPanel.add(getMassegePanel(), BorderLayout.CENTER);
+        mainPanel.setBorder(border);
+        myChat.setVisible(true);
+        return myChat;
+    }
 
+    public JPanel getUserPanel() {
 
+        userPanel = new JPanel(new BorderLayout());
+        userPanel.add(new JScrollPane(users), BorderLayout.CENTER);
+        pMessageBut.setText("Send a private message");
+        userPanel.add(pMessageBut, BorderLayout.NORTH);
+        userPanel.add(new Label("Users Online"), BorderLayout.WEST);
+        pMessageBut.addActionListener(e -> {
+            message = textOfMessage.getText();
+            textOfMessage.setText("");
+            try {
+                String name2 = users.getSelectedValue();
+                client.remote.sendPM(youname, name2, message);
             } catch (RemoteException ex) {
                 ex.printStackTrace();
             }
-        }
-
-        public JPanel getUserPanel() {
-            updatelist();
-            userpanel = new JPanel(new BorderLayout());
-            userpanel.add(new JScrollPane(users), BorderLayout.CENTER);
-            userpanel.add(pmessageBut, BorderLayout.NORTH);
-            pmessageBut.addActionListener(new ButtonEventListener3());
-            userpanel.add(usersOnline, BorderLayout.EAST);
-            userpanel.add(leaveChat, BorderLayout.AFTER_LAST_LINE);
-            leaveChat.addActionListener(new ButtonEventListener4());
-
-            return userpanel;
-        }
-
-        public JPanel getTextPanel() {
-            String welcome = "Welcome enter your name and press Start to begin\n";
-            textPanel = new JPanel(new BorderLayout());
-            textPanel.add(messegelabel, BorderLayout.WEST);
-            textPanel.add(textOfMessage, BorderLayout.SOUTH);
-            textPanel.add(messageBut, BorderLayout.NORTH);
-            messageBut.setBounds(200, 200, 5, 5);
-            textPanel.setFont(new Font("Meiryo", Font.PLAIN, 15));
-            messageBut.addActionListener(new ButtonEventListener2());
-            return textPanel;
-        }
-
-        public JPanel getmassegePanel() {
-            massegePanel = new JPanel(new GridLayout(1, 1, 1, 1));
-            chat = new JTextArea("username : " + name.getText() + " connecting to chat...\n", 19, 20);
-            chat.setBackground(Color.PINK);
-            massegePanel.add(chat);
-            return massegePanel;
-        }
-
-        class ButtonEventListener2 implements ActionListener {
-            public void actionPerformed(ActionEvent e) {
-                message = textOfMessage.getText();
-                textOfMessage.setText("");
-                try {
-                    a.remote.sendMessage(youname, message);
-                } catch (RemoteException | InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        class ButtonEventListener3 implements ActionListener {
-            public void actionPerformed(ActionEvent e) {
-                message = textOfMessage.getText();
-                textOfMessage.setText("");
-                try {
-                    String name2 = users.getSelectedValue();
-                    a.remote.sendPM(youname, name2, message);
-                } catch (RemoteException ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        class ButtonEventListener4 implements ActionListener {
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    a.remote.disconnect(youname);
-                    myChat.dispose();
-                } catch (RemoteException ex) {
-                    ex.printStackTrace();
-                }
-            }
-        }
-
-        public void updatelist() {
+        });
+        leaveChatBut = new JButton("Leave chat");
+        leaveChatBut.setBackground(Color.lightGray);
+        leaveChatBut.setFont(new Font("Meiryo", Font.PLAIN, 18));
+        userPanel.add(leaveChatBut, BorderLayout.AFTER_LAST_LINE);
+        leaveChatBut.addActionListener(e -> {
             try {
-                String[] online = a.remote.getusers();
-                System.out.println(online);
-                if (online.length != 0) {
-                    usersOnline.setText("ONLINE");
-                    users = new JList<String>(online);
-                } else {
-                    usersOnline.setText("No other users");
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
+                client.remote.disconnect(youname);
+                myChat.dispose();
+                main.setVisible(true);
+            } catch (RemoteException ex) {
+                ex.printStackTrace();
             }
+        });
 
-        }
+        return userPanel;
+    }
+
+    public JPanel getTextPanel() {
+        textPanel = new JPanel(new BorderLayout());
+        textPanel.add(new Label("Enter your message:"), BorderLayout.WEST);
+        textOfMessage = new JTextField("", 10);
+        textPanel.add(textOfMessage, BorderLayout.SOUTH);
+        messageBut = new JButton("Send a message");
+        textPanel.add(messageBut, BorderLayout.NORTH);
+        messageBut.setBounds(200, 200, 5, 5);
+        textPanel.setFont(new Font("Meiryo", Font.PLAIN, 15));
+        messageBut.addActionListener(e -> {
+            message = textOfMessage.getText();
+            textOfMessage.setText("");
+            try {
+                client.remote.sendMessage(youname, message);
+            } catch (RemoteException | InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        });
+        return textPanel;
+    }
+
+    public JPanel getMassegePanel() {
+        massegePanel = new JPanel(new BorderLayout());
+        chat = new JTextArea("[" + youname + "] connecting to chat...\n");
+        chat.setFont(new Font("Meiryo", Font.PLAIN, 15));
+        chat.setBackground(Color.pink);
+        chat.setBorder(border);
+        chat.setEditable(false);
+        massegePanel.add(chat, BorderLayout.CENTER);
+        return massegePanel;
     }
 }
+
+
 
 
 

@@ -1,9 +1,7 @@
-import com.sun.security.ntlm.Client;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class Message  implements Imessage{
+public class Message implements Imessage {
 
     protected String text;
     protected String user;
@@ -15,14 +13,14 @@ public class Message  implements Imessage{
 
     @Override
     public String getMessageFromChat() {
-        return  user + ": " + text;
+        return user + ": " + text;
     }
 
     @Override
     public List<String> getClients() {
-        List<String>  users = new ArrayList<>();
+        List<String> users = new ArrayList<>();
         users.add(user);
-        return  users;
-        }
+        return users;
     }
+}
 

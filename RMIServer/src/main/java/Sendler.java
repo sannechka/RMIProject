@@ -1,15 +1,15 @@
 import java.rmi.RemoteException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 
 public class Sendler implements Runnable {
 
-    public SynchronousQueue<Imessage> allMessages = new SynchronousQueue<>();
-    private Server server;
+    protected SynchronousQueue<Imessage> allMessages = new SynchronousQueue<>();
+    protected Map<String, ClientInterface> usersOnline = new ConcurrentHashMap<>();
 
-    public Sendler(Server server) {
-        this.server = server;
-    }
 
     @Override
     public void run() {
@@ -35,20 +35,23 @@ public class Sendler implements Runnable {
         List<String> usersInChat = message.getClients();
         if (usersInChat.size() == 2) {
             if (usersInChat.get(1) != null) {
-                ClientInterface recipient = server.getUserByName(usersInChat.get(1));
+                ClientInterface recipient = usersOnline.get(usersInChat.get(1));
                 recipient.messageFromChat(message.getMessageFromChat());
-                ClientInterface sendler = server.getUserByName(usersInChat.get(0));
+                ClientInterface sendler = usersOnline.get(usersInChat.get(0));
                 sendler.messageFromChat(message.getMessageFromChat());
+                System.out.println(message.getMessageFromChat());
             } else {
-                ClientInterface sendler = server.getUserByName(usersInChat.get(0));
+                ClientInterface sendler = usersOnline.get(usersInChat.get(0));
                 sendler.messageFromChat(usersInChat.get(1) + " did not receive a message");
             }
         } else {
-            for (ClientInterface a : server.getUsers()) {
+            for (ClientInterface a : new HashSet<>(usersOnline.values())) {
                 a.messageFromChat(message.getMessageFromChat());
             }
+            System.out.println(message.getMessageFromChat());
         }
-
     }
+
 }
+
 
