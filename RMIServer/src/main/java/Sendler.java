@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.SynchronousQueue;
 
-public class Sendler implements Runnable {
+public class Sendler extends Thread  {
 
     protected SynchronousQueue<Imessage> allMessages = new SynchronousQueue<>();
     protected Map<String, ClientInterface> usersOnline = new ConcurrentHashMap<>();

@@ -10,7 +10,7 @@ public class ClientGUI extends JFrame {
     private Border border = BorderFactory.createMatteBorder(1, 1, 1, 1, Color.gray);
     private JTextField textOfMessage;
     protected JPanel textPanel, userPanel, massegePanel, conectionPanel;
-    private String youname, message;
+    private String yourName, message;
     private JFrame myChat, main;
     protected JTextArea chat;
     private Client client;
@@ -23,8 +23,8 @@ public class ClientGUI extends JFrame {
 
     public boolean getConnected() {
         try {
-            client = new Client(this, youname);
-            return client.startClient(youname);
+            client = new Client(this, yourName);
+            return client.startClient(yourName);
 
         } catch (RemoteException e) {
             e.printStackTrace();
@@ -44,8 +44,8 @@ public class ClientGUI extends JFrame {
         JButton connectBut = new JButton("Connect");
         conectionPanel.add(connectBut);
         connectBut.addActionListener(e -> {
-            youname = name.getText();
-            if (!youname.isEmpty()) {
+            yourName = name.getText();
+            if (!yourName.isEmpty()) {
                 if (getConnected()) {
                     getMyChat();
                     main = this;
@@ -62,7 +62,7 @@ public class ClientGUI extends JFrame {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
                 try {
-                    client.remote.disconnect(youname);
+                    client.remote.disconnect(yourName);
                     main.setVisible(true);
                 } catch (RemoteException ex) {
                     ex.printStackTrace();
@@ -93,7 +93,7 @@ public class ClientGUI extends JFrame {
             textOfMessage.setText("");
             try {
                 String name2 = users.getSelectedValue();
-                client.remote.sendPM(youname, name2, message);
+                client.remote.sendPM(yourName, name2, message);
             } catch (RemoteException ex) {
                 ex.printStackTrace();
             }
@@ -104,7 +104,7 @@ public class ClientGUI extends JFrame {
         userPanel.add(leaveChatBut, BorderLayout.AFTER_LAST_LINE);
         leaveChatBut.addActionListener(e -> {
             try {
-                client.remote.disconnect(youname);
+                client.remote.disconnect(yourName);
                 myChat.dispose();
                 main.setVisible(true);
             } catch (RemoteException ex) {
@@ -128,7 +128,7 @@ public class ClientGUI extends JFrame {
             message = textOfMessage.getText();
             textOfMessage.setText("");
             try {
-                client.remote.sendMessage(youname, message);
+                client.remote.sendMessage(yourName, message);
             } catch (RemoteException | InterruptedException ex) {
                 ex.printStackTrace();
             }
@@ -138,7 +138,7 @@ public class ClientGUI extends JFrame {
 
     public JPanel getMassegePanel() {
         massegePanel = new JPanel(new BorderLayout());
-        chat = new JTextArea("[" + youname + "] connecting to chat...\n");
+        chat = new JTextArea("[" + yourName + "] connecting to chat...\n");
         chat.setFont(new Font("Meiryo", Font.PLAIN, 15));
         chat.setBackground(Color.pink);
         chat.setBorder(border);
